@@ -1,6 +1,6 @@
 from math import gamma
 from scipy.constants import pi
-from numpy import pow, arange, array
+from numpy import arange, array
 import matplotlib.pyplot as plt
 
 def volume(r: float, n: int):
