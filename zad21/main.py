@@ -35,10 +35,12 @@ if __name__ == "__main__":
     words = set(res)
     l = len(words)
     print(f"exact size: {l}")
-    est = CountDistinct(400)
-    for w in words:
-        est.onGet(w)
-    v = est.estimate()
-    print(f"estimated size: {v}")
-
+    avgErr = [0 for _ in range(50)]
+    for i in range(50):
+        est = CountDistinct(400)
+        for w in res:
+            est.onGet(w)
+        v = est.estimate()
+        avgErr[i] = abs(l - v) / l
+    print(f"average error: {sum(avgErr) / 50}")
         
