@@ -22,9 +22,9 @@ class CountDistinct:
         if t < lst[self.k-1] and t not in lst:
             lst.append(t)
             lst.sort()
-            lst = lst[0:self.k]
+            lst.pop()
     def estimate(self):
-        return round((self.k-1)/(self.x[self.k-1])) + round((self.k-1)/(self.y[self.k-1]))
+        return (round((self.k-1)/(self.x[self.k-1])) + round((self.k-1)/(self.y[self.k-1])))//2
 
 
 if __name__ == "__main__":
