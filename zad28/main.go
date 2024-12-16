@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"os"
 
@@ -13,11 +14,9 @@ func main() {
 	breakPoints := map[int]bool{}
 
 	point := 1000
-	for point <= 1e7 {
+	for point <= 1e4 {
 		breakPoints[point] = false
-		// This will add a redundant point for point == 1e7, but it does not matter
-		breakPoints[5*point] = false
-		point *= 10
+		point += 1000
 	}
 
 	// Neighbourhood of #registers * log(#registers)
@@ -54,8 +53,8 @@ func main() {
 			if active := breakPoints[len(distinctElemts)]; active {
 				breakPoints[len(distinctElemts)] = false
 				card := uint64(len(distinctElemts))
-				errHll := float64(hll.Count()-card) / float64(card)
-				errLL := float64(ll.Count()-card) / float64(card)
+				errHll := math.Abs(float64(hll.Count())-float64(card)) / float64(card)
+				errLL := math.Abs(float64(ll.Count())-float64(card)) / float64(card)
 
 				_, err := outputFile.WriteString(fmt.Sprintf("%d,%f,%f\n", len(distinctElemts), errHll, errLL))
 				if err != nil {

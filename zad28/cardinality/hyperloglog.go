@@ -30,6 +30,9 @@ func (h *HyperLogLog) Add(hash uint32) {
 	trailing := hash >> h.precision
 	// Position of the first 1
 	bitPos := bits.TrailingZeros32(trailing) + 1
+	if bitPos == 33 {
+		bitPos = 33 - int(h.precision)
+	}
 	// Note: BitPos is in [0,33]
 	if h.registers[index] < uint8(bitPos) {
 		h.registers[index] = uint8(bitPos)

@@ -20,7 +20,7 @@ def create_box_plots(data):
         # Create the box plot for errHll grouped by card
         plt.figure(figsize=(12, 6))
         sns.boxplot(x='card', y='errHll', data=data, palette='Set2')
-        plt.title('Box Plot of errHll by card')
+        plt.title('Box Plot of errHll by card (Log Scale)')
         plt.xlabel('Card')
         plt.ylabel('errHll')
         plt.xticks(rotation=45)
@@ -30,7 +30,7 @@ def create_box_plots(data):
         # Create the box plot for errLL grouped by card
         plt.figure(figsize=(12, 6))
         sns.boxplot(x='card', y='errLL', data=data, palette='Set3')
-        plt.title('Box Plot of errLL by card')
+        plt.title('Box Plot of errLL by card (Log Scale)')
         plt.xlabel('Card')
         plt.ylabel('errLL')
         plt.xticks(rotation=45)
