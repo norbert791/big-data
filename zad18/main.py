@@ -28,10 +28,11 @@ class CountDistinct:
 
 
 if __name__ == "__main__":
-    url = "https://www.gutenberg.org/cache/epub/1184/pg1184.txt"
-    monteChristo = get(url)
-    body = monteChristo.text
-    res = findall(r"\w+", body)
+    text = ""
+    with open('data/christo.txt') as f:
+        for line in f:
+            text += line + "\n"
+    res = findall(r"\w+", text)
     words = set(res)
     l = len(words)
     print(f"exact size: {l}")

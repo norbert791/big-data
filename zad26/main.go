@@ -7,7 +7,6 @@ import (
 	"os"
 )
 
-// Helper function to calculate the binomial coefficient (n choose k) using math/big
 func binomialCoefficient(n, k int) *big.Int {
 	if k > n {
 		return big.NewInt(0)
@@ -28,7 +27,6 @@ func binomialCoefficient(n, k int) *big.Int {
 	return result
 }
 
-// snExact calculates Sn exactly using math/big for arbitrary-precision integers
 func snExact(n int) float64 {
 	sumVal := big.NewFloat(0.0)
 	powTwoN := new(big.Float).SetFloat64(math.Pow(2, float64(n)))
@@ -45,7 +43,6 @@ func snExact(n int) float64 {
 	return result
 }
 
-// snApprox calculates the delta method approximation of Sn
 func snApprox(n int) float64 {
 	return float64(n)/2 - 0.25
 }

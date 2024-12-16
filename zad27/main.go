@@ -7,7 +7,6 @@ import (
 	"os"
 )
 
-// Helper function to calculate the multinomial coefficient
 func multinomialCoefficient(n, n1, n2, n3 int) *big.Int {
 	if n1 < 0 || n2 < 0 || n3 < 0 || n1+n2+n3 != n {
 		return big.NewInt(0)
@@ -18,7 +17,6 @@ func multinomialCoefficient(n, n1, n2, n3 int) *big.Int {
 	return coeff
 }
 
-// Helper function to calculate the binomial coefficient (n choose k) using math/big
 func binomialCoefficient(n, k int) *big.Int {
 	if k > n {
 		return big.NewInt(0)
@@ -73,7 +71,7 @@ func main() {
 
 	file.WriteString("Aprox,Exact\n")
 
-	for n := 1; n <= 100; n++ {
+	for n := 1; n <= 50; n++ {
 		aprox := approximateTn(n)
 		exact := calculateTn(n)
 		_, err := file.WriteString(fmt.Sprintf("%f,%f\n", aprox, exact))

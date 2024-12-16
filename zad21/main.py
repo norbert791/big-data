@@ -15,23 +15,25 @@ class CountDistinct:
         self.rhf = RandomHashFamily(1)
     def onGet(self, a):
         t = self.rhf.hashes(a)[0]
+        randNum = t % 2
         t = t / (2**32-1)
         # t = (t[randint(0,1)]) / (2^64-1)
         assert(t <= 1)
-        lst = self.x if randint(0,1) == 0 else self.y
+        lst = self.x if randNum == 0 else self.y
         if t < lst[self.k-1] and t not in lst:
             lst.append(t)
             lst.sort()
             lst.pop()
     def estimate(self):
-        return (round((self.k-1)/(self.x[self.k-1])) + round((self.k-1)/(self.y[self.k-1])))//2
+        return (round((self.k-1)/(self.x[self.k-1])) + round((self.k-1)/(self.y[self.k-1])))
 
 
 if __name__ == "__main__":
-    url = "https://www.gutenberg.org/cache/epub/1184/pg1184.txt"
-    monteChristo = get(url)
-    body = monteChristo.text
-    res = findall(r"\w+", body)
+    text = ""
+    with open('data/christo.txt') as f:
+        for line in f:
+            text += line + "\n"
+    res = findall(r"\w+", text)
     words = set(res)
     l = len(words)
     print(f"exact size: {l}")
