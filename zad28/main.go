@@ -20,7 +20,7 @@ func main() {
 	}
 
 	// Neighbourhood of #registers * log(#registers)
-	for i := 7090; i <= 7100; i++ {
+	for i := 7080; i <= 7110; i++ {
 		breakPoints[i] = false
 	}
 
