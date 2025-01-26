@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, explode, split, lower, regexp_replace, length, input_file_name
+from pyspark.sql.functions import col, explode, split, lower, regexp_replace, length, input_file_name, expr
 from pyspark.ml.feature import StopWordsRemover, HashingTF, IDF
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
@@ -8,54 +8,55 @@ from wordcloud import WordCloud
 spark = SparkSession.builder.appName("WordCloud").getOrCreate()
 
 # Read all text files under the "shakespear/" directory
-text_df = spark.read.text("shakespear/*.txt").withColumn("filename", input_file_name())
+text_df = spark.read.text("shakespear/*.txt", wholetext=True).withColumn("filename", input_file_name())
 
-# Preprocess text: convert to lowercase, remove punctuation, and split into words
-words_df = text_df.select(split(lower(regexp_replace(col("value"), "[^a-zA-Z\\s]", "")), "\\s+").alias("words"), col("filename"))
+# Remove punctuation and convert to lowercase
+text_df = text_df.withColumn("text", lower(regexp_replace(col("value"), "[^a-zA-Z\\s]", "")))
 
-# Remove stop words and words of length shorter than 3
+# Split text into words
+words_df = text_df.withColumn("words", split(col("text"), "\\s+"))
+
+# Remove empty words, words that are whitespace only, and words shorter than 3 characters
+words_df = words_df.withColumn("words", expr("filter(words, x -> length(trim(x)) > 2)"))
+
+# Remove stop words
 remover = StopWordsRemover(inputCol="words", outputCol="filtered_words")
-remover.loadDefaultStopWords("english")
 filtered_df = remover.transform(words_df)
 
-# Explode the filtered words into individual rows
-filtered_words_df = filtered_df.select(explode(col("filtered_words")).alias("word"), col("filename"))
-filtered_words_df = filtered_words_df.filter(length(col("word")) >= 3)
+# Select only the filtered words column and filename
+filtered_df = filtered_df.select("filtered_words", "filename")
 
 # Compute term frequency (TF)
-hashing_tf = HashingTF(inputCol="filtered_words", outputCol="raw_features", numFeatures=10000)
-featurized_data = hashing_tf.transform(filtered_df)
+hashingTF = HashingTF(inputCol="filtered_words", outputCol="raw_features")
+featurized_df = hashingTF.transform(filtered_df)
 
 # Compute inverse document frequency (IDF)
 idf = IDF(inputCol="raw_features", outputCol="features")
-idf_model = idf.fit(featurized_data)
-rescaled_data = idf_model.transform(featurized_data)
+idf_model = idf.fit(featurized_df)
+tfidf_df = idf_model.transform(featurized_df)
 
-# Extract TF-IDF scores
-def extract_values(v):
-    return v.values.tolist()
+# Collect the TF-IDF features and words
+tfidf_features = tfidf_df.select("filtered_words", "features", "filename").collect()
 
-extract_values_udf = spark.udf.register("extract_values", extract_values, "array<double>")
-
-tfidf_scores = rescaled_data.select(explode(col("filtered_words")).alias("word"), explode(extract_values_udf(col("features"))).alias("score"))
-
-# Sum the TF-IDF scores for each word
-tfidf_scores = tfidf_scores.groupBy("word").sum("score").orderBy("sum(score)", ascending=False)
-
-# Get the 20 words with the highest TF-IDF scores
-top_words = tfidf_scores.limit(20).collect()
-
-# Convert to dictionary for word cloud
-word_freq = {row['word']: row['sum(score)'] for row in top_words}
-
-# Generate word cloud
-wordcloud = WordCloud(width=800, height=400, background_color='white').generate_from_frequencies(word_freq)
-
-# Display the word cloud
-plt.figure(figsize=(10, 5))
-plt.imshow(wordcloud, interpolation='bilinear')
-plt.axis('off')
-plt.show()
+# Generate word clouds for each document
+for row in tfidf_features:
+    words = row["filtered_words"]
+    features = row["features"].toArray()
+    filename = row["filename"]
+    
+    # Create a dictionary of words and their TF-IDF scores
+    word_tfidf = {words[i]: features[i] for i in range(len(words))}
+    
+    # Generate the word cloud
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate_from_frequencies(word_tfidf)
+    
+    # Display the word cloud with filename as title
+    plt.figure(figsize=(10, 5))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    trimmed_filename = filename.split("/")[-1]
+    plt.title(trimmed_filename, fontsize=12)
+    plt.axis("off")
+    plt.show()
 
 # Stop Spark session
 spark.stop()
