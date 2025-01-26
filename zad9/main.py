@@ -1,16 +1,15 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, explode, split, lower, regexp_replace, length
-from pyspark.ml.feature import StopWordsRemover, HashingTF, IDF
-from pyspark.ml.linalg import DenseVector
+from pyspark.ml.feature import StopWordsRemover
+from collections import Counter
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 
 # Initialize Spark session
 spark = SparkSession.builder.appName("WordCloud").getOrCreate()
 
-# Read all text files under the "shakespear/" directory
-text_df = spark.read.text("shakespear/*.txt")
-text_df.show()
+# Read text file
+text_df = spark.read.text("shakespear/hamlet.txt")
 
 # Preprocess text: convert to lowercase, remove punctuation, and split into words
 words_df = text_df.select(split(lower(regexp_replace(col("value"), "[^a-zA-Z\\s]", "")), "\\s+").alias("words"))
@@ -24,31 +23,14 @@ filtered_df = remover.transform(words_df)
 filtered_words_df = filtered_df.select(explode(col("filtered_words")).alias("word"))
 filtered_words_df = filtered_words_df.filter(length(col("word")) >= 3)
 
-# Compute term frequency (TF)
-hashing_tf = HashingTF(inputCol="filtered_words", outputCol="raw_features")
-featurized_data = hashing_tf.transform(filtered_df)
+# Count occurrences of each word
+word_counts = filtered_words_df.groupBy("word").count().orderBy("count", ascending=False)
 
-# Compute inverse document frequency (IDF)
-idf = IDF(inputCol="raw_features", outputCol="features")
-idf_model = idf.fit(featurized_data)
-rescaled_data = idf_model.transform(featurized_data)
-
-# Extract TF-IDF scores
-def extract_values(v):
-    return v.values.tolist()
-
-extract_values_udf = spark.udf.register("extract_values", extract_values, "array<double>")
-
-tfidf_scores = rescaled_data.select(explode(col("filtered_words")).alias("word"), explode(extract_values_udf(col("features"))).alias("score"))
-
-# Sum the TF-IDF scores for each word
-tfidf_scores = tfidf_scores.groupBy("word").sum("score").orderBy("sum(score)", ascending=False)
-
-# Get the 20 words with the highest TF-IDF scores
-top_words = tfidf_scores.limit(20).collect()
+# Get the 20 most popular words
+top_words = word_counts.limit(20).collect()
 
 # Convert to dictionary for word cloud
-word_freq = {row['word']: row['sum(score)'] for row in top_words}
+word_freq = {row['word']: row['count'] for row in top_words}
 
 # Generate word cloud
 wordcloud = WordCloud(width=800, height=400, background_color='white').generate_from_frequencies(word_freq)
