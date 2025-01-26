@@ -1,7 +1,6 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, explode, split, lower, regexp_replace, length
+from pyspark.sql.functions import col, explode, split, lower, regexp_replace, length, input_file_name
 from pyspark.ml.feature import StopWordsRemover, HashingTF, IDF
-from pyspark.ml.linalg import DenseVector
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 
@@ -9,11 +8,10 @@ from wordcloud import WordCloud
 spark = SparkSession.builder.appName("WordCloud").getOrCreate()
 
 # Read all text files under the "shakespear/" directory
-text_df = spark.read.text("shakespear/*.txt")
-text_df.show()
+text_df = spark.read.text("shakespear/*.txt").withColumn("filename", input_file_name())
 
 # Preprocess text: convert to lowercase, remove punctuation, and split into words
-words_df = text_df.select(split(lower(regexp_replace(col("value"), "[^a-zA-Z\\s]", "")), "\\s+").alias("words"))
+words_df = text_df.select(split(lower(regexp_replace(col("value"), "[^a-zA-Z\\s]", "")), "\\s+").alias("words"), col("filename"))
 
 # Remove stop words and words of length shorter than 3
 remover = StopWordsRemover(inputCol="words", outputCol="filtered_words")
@@ -21,11 +19,11 @@ remover.loadDefaultStopWords("english")
 filtered_df = remover.transform(words_df)
 
 # Explode the filtered words into individual rows
-filtered_words_df = filtered_df.select(explode(col("filtered_words")).alias("word"))
+filtered_words_df = filtered_df.select(explode(col("filtered_words")).alias("word"), col("filename"))
 filtered_words_df = filtered_words_df.filter(length(col("word")) >= 3)
 
 # Compute term frequency (TF)
-hashing_tf = HashingTF(inputCol="filtered_words", outputCol="raw_features")
+hashing_tf = HashingTF(inputCol="filtered_words", outputCol="raw_features", numFeatures=10000)
 featurized_data = hashing_tf.transform(filtered_df)
 
 # Compute inverse document frequency (IDF)
